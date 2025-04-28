@@ -31,8 +31,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun CharacterListScreen(viewModel: CharacterListViewModel) {
     val context = LocalContext.current
-
     val characters = viewModel.characterPagingFlow.collectAsLazyPagingItems()
+
     var isConnected by remember { mutableStateOf(true) }
     var showGreenView by remember { mutableStateOf(false) }
 
@@ -71,7 +71,7 @@ fun CharacterListScreen(viewModel: CharacterListViewModel) {
         }
 
         val isRefreshing =
-            remember { derivedStateOf { characters.loadState.refresh is androidx.paging.LoadState.Loading } }
+            remember { derivedStateOf { characters.loadState.refresh is LoadState.Loading } }
 
         PullToRefreshBox(
             isRefreshing = isRefreshing.value,

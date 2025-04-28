@@ -12,5 +12,4 @@ class MyUtcApplication : Application() {
             modules(appModule)
         }
     }
-
 }
