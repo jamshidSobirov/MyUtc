@@ -1,5 +1,6 @@
 package com.jmdev.myutc.data.remote
 
+import android.util.Log
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.jmdev.myutc.data.api.CharacterApi
@@ -15,6 +16,8 @@ class CharacterPagingSource(
         val page = params.key ?: 1
         return try {
             val response = api.getCharacters(page)
+            Log.d("PagingSource", "Loaded page: $page")
+
             LoadResult.Page(
                 data = response.results,
                 prevKey = if (page == 1) null else page - 1,
