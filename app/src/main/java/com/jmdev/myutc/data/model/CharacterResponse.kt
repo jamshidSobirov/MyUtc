@@ -1,4 +1,4 @@
-package com.jmdev.myutc.model
+package com.jmdev.myutc.data.model
 
 data class CharacterResponse(
     val info: Info,

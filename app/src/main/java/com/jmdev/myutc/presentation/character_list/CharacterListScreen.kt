@@ -1,4 +1,4 @@
-package com.jmdev.myutc.ui.character_list
+package com.jmdev.myutc.presentation.character_list
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -10,8 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberAsyncImagePainter
-import com.jmdev.myutc.model.Character
-import com.jmdev.myutc.ui.items
+import com.jmdev.myutc.data.model.Character
+import com.jmdev.myutc.presentation.extensions.items
 
 @Composable
 fun CharacterListScreen(viewModel: CharacterListViewModel) {

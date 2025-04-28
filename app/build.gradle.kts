@@ -75,6 +75,12 @@ dependencies {
     // Coil (for images)
     implementation(libs.coil.compose)
 
+    // Koin core
+    implementation(libs.koin.androidx.compose)
+
+    // For ViewModel
+//    implementation(libs.koin.androidx.viewmodel)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -82,6 +88,5 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-
 
 }

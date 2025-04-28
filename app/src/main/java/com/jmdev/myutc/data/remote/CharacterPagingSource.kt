@@ -2,7 +2,8 @@ package com.jmdev.myutc.data.remote
 
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
-import com.jmdev.myutc.model.Character
+import com.jmdev.myutc.data.api.CharacterApi
+import com.jmdev.myutc.data.model.Character
 import retrofit2.HttpException
 import java.io.IOException
 

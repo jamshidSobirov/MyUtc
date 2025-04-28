@@ -1,6 +1,6 @@
-package com.jmdev.myutc.data.remote
+package com.jmdev.myutc.data.api
 
-import com.jmdev.myutc.model.CharacterResponse
+import com.jmdev.myutc.data.model.CharacterResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
