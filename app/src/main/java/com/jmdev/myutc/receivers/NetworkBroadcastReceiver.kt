@@ -8,8 +8,7 @@ import android.net.NetworkCapabilities
 import android.os.Build
 
 class NetworkBroadcastReceiver(
-    private val onNetworkChange: (isConnected: Boolean) -> Unit,
-    private val onInternetRestored: () -> Unit
+    private val onNetworkChange: (isConnected: Boolean) -> Unit
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
@@ -20,9 +19,6 @@ class NetworkBroadcastReceiver(
         val isConnected =
             capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
 
-        if (isConnected) {
-            onInternetRestored()
-        }
         onNetworkChange(isConnected)
     }
 }

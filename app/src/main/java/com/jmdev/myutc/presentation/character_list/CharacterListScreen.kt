@@ -1,17 +1,17 @@
 package com.jmdev.myutc.presentation.character_list
 
-import android.content.Context
 import android.content.IntentFilter
 import android.net.ConnectivityManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberAsyncImagePainter
 import com.jmdev.myutc.data.model.Character
@@ -36,19 +37,14 @@ fun CharacterListScreen(viewModel: CharacterListViewModel) {
     var showGreenView by remember { mutableStateOf(false) }
 
     val receiver = remember {
-        NetworkBroadcastReceiver(
-            onNetworkChange = { connected ->
-                if (connected) {
-                    showGreenView = true
-                    isConnected = true
-                } else {
-                    isConnected = false
-                }
-            },
-            onInternetRestored = {
-                characters.refresh()
+        NetworkBroadcastReceiver(onNetworkChange = { connected ->
+            if (connected) {
+                showGreenView = true
+                isConnected = true
+            } else {
+                isConnected = false
             }
-        )
+        })
     }
 
     DisposableEffect(Unit) {
@@ -92,7 +88,50 @@ fun CharacterListScreen(viewModel: CharacterListViewModel) {
                         CharacterItem(character = it)
                     }
                 }
+
+                characters.apply {
+                    when {
+                        loadState.append is LoadState.Error -> {
+                            item {
+                                RetryItem(message = "Failed to load more items. \nTry again.",
+                                    onRetryClick = { retry() })
+                            }
+                        }
+
+                        loadState.refresh is LoadState.Error -> {
+                            item {
+                                RetryItem(message = "Failed to load items. \nCheck your connection.",
+                                    onRetryClick = { retry() })
+                            }
+                        }
+                    }
+                }
             }
+
+            if (characters.loadState.append is LoadState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun RetryItem(message: String, onRetryClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(
+            message, modifier = Modifier
+                .padding(end = 8.dp)
+                .align(Alignment.CenterVertically)
+        )
+        Button(onClick = onRetryClick) {
+            Text("Retry")
         }
     }
 }
@@ -107,9 +146,7 @@ fun StatusBox(message: String, backgroundColor: Color) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = message,
-            color = Color.White,
-            textAlign = TextAlign.Center
+            text = message, color = Color.White, textAlign = TextAlign.Center
         )
     }
 }
