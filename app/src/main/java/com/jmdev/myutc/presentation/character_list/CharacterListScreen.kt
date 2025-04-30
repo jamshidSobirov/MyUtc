@@ -6,8 +6,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,11 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.paging.LoadState
-import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.rememberAsyncImagePainter
 import com.jmdev.myutc.data.model.Character
-import com.jmdev.myutc.presentation.extensions.items
 import com.jmdev.myutc.receivers.NetworkBroadcastReceiver
 import kotlinx.coroutines.delay
 
@@ -31,7 +29,20 @@ import kotlinx.coroutines.delay
 @Composable
 fun CharacterListScreen(viewModel: CharacterListViewModel) {
     val context = LocalContext.current
-    val characters = viewModel.characterPagingFlow.collectAsLazyPagingItems()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val hasError by viewModel.hasError.collectAsState()
+    val characters by viewModel.characters.collectAsState()
+    val listState = rememberLazyListState()
+
+    // Local state to control RetryItem visibility
+    var showRetryItem by remember { mutableStateOf(false) }
+
+    // Show RetryItem only when there's an error
+    LaunchedEffect(hasError) {
+        if (hasError) {
+            showRetryItem = true
+        }
+    }
 
     var isConnected by remember { mutableStateOf(true) }
     var showGreenView by remember { mutableStateOf(false) }
@@ -70,48 +81,43 @@ fun CharacterListScreen(viewModel: CharacterListViewModel) {
             StatusBox(message = "You are connected", backgroundColor = Color.Green)
         }
 
-        val isRefreshing =
-            remember { derivedStateOf { characters.loadState.refresh is LoadState.Loading } }
 
         PullToRefreshBox(
-            isRefreshing = isRefreshing.value,
+            isRefreshing = isLoading && characters.isEmpty(),
             onRefresh = {
-                characters.refresh()
+                viewModel.resetCharacters()
             },
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize()
+                state = listState, modifier = Modifier.fillMaxSize()
             ) {
                 items(characters) { character ->
-                    character?.let {
-                        CharacterItem(character = it)
-                    }
+                    CharacterItem(character, characters.indexOf(character))
                 }
 
-                characters.apply {
-                    when {
-                        loadState.append is LoadState.Error -> {
-                            item {
-                                RetryItem(message = "Failed to load more items. \nTry again.",
-                                    onRetryClick = { retry() })
-                            }
-                        }
-
-                        loadState.refresh is LoadState.Error -> {
-                            item {
-                                RetryItem(message = "Failed to load items. \nCheck your connection.",
-                                    onRetryClick = { retry() })
-                            }
-                        }
+                // Show RetryItem if there's an error
+                if (showRetryItem) {
+                    item {
+                        RetryItem(message = "Failed to load items. Check your connection.",
+                            onRetryClick = {
+                                viewModel.retryLoadingPage()
+                                showRetryItem = false // Hide RetryItem after retry
+                            })
                     }
                 }
             }
 
-            if (characters.loadState.append is LoadState.Loading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(16.dp)
-                )
+            // Detect when user scrolls to the end of the list
+            LaunchedEffect(listState) {
+                snapshotFlow { listState.layoutInfo }.collect { layoutInfo ->
+                    val totalItems = layoutInfo.totalItemsCount
+                    val lastVisibleItemIndex = layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+
+                    if (lastVisibleItemIndex >= totalItems - 1 && !showRetryItem) {
+                        viewModel.loadNextCharacters()
+                    }
+                }
             }
         }
     }
@@ -152,12 +158,14 @@ fun StatusBox(message: String, backgroundColor: Color) {
 }
 
 @Composable
-fun CharacterItem(character: Character) {
+fun CharacterItem(character: Character, indexOf: Int) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
+        Text(text = indexOf.toString())
+        Spacer(modifier = Modifier.width(8.dp))
         Image(
             painter = rememberAsyncImagePainter(character.image),
             contentDescription = character.name,
