@@ -3,6 +3,7 @@ package com.jmdev.myutc.presentation.character_list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jmdev.myutc.data.model.Character
+import com.jmdev.myutc.data.repository.PageState
 import com.jmdev.myutc.domain.repository.CharacterRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -12,57 +13,63 @@ class CharacterListViewModel(
     private val repository: CharacterRepository
 ) : ViewModel() {
 
-    private val _characters = MutableStateFlow<List<Character>>(emptyList())
-    val characters: StateFlow<List<Character>> = _characters
+    private val _pages = MutableStateFlow<MutableList<PageState<List<Character>>>>(mutableListOf())
+    val pages: StateFlow<List<PageState<List<Character>>>> = _pages
 
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    private val _hasError = MutableStateFlow(false)
-    val hasError: StateFlow<Boolean> = _hasError
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     private var currentPage = 1
 
     init {
-        loadNextCharacters()
+        loadNextPage()
     }
 
-    fun loadNextCharacters() {
-        if (_isLoading.value) return
+    fun loadNextPage() {
+        _pages.value = _pages.value.toMutableList().apply {
+            add(PageState.Loading)
+        }
 
         viewModelScope.launch {
-            _isLoading.value = true
-            _hasError.value = false
-            try {
-                val newCharacters = repository.loadCharacters(currentPage)
-                _characters.value += newCharacters
+            val result = repository.loadCharacters(currentPage)
+            _pages.value = _pages.value.toMutableList().apply {
+                removeAt(size - 1)
+                add(result)
+            }
+            if (result is PageState.Success) {
                 currentPage++
-            } catch (e: Exception) {
-                _hasError.value = true
-            } finally {
-                _isLoading.value = false
             }
         }
     }
 
-    fun retryLoadingPage() {
-        loadNextCharacters()
+    fun resetPagination() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            currentPage = 1
+            _pages.value = mutableListOf()
+            val result = repository.loadCharacters(currentPage)
+            _pages.value = _pages.value.toMutableList().apply {
+                add(result) // Add the first page
+            }
+            if (result is PageState.Success) {
+                currentPage = 2
+            }
+            _isRefreshing.value = false
+        }
     }
 
-    fun resetCharacters() {
+    fun retryPage(pageIndex: Int) {
+        _pages.value = _pages.value.toMutableList().apply {
+            set(pageIndex, PageState.Loading)
+        }
+
         viewModelScope.launch {
-            _isLoading.value = true
-            _hasError.value = false
-            _characters.value = emptyList()
-            currentPage = 1
-            try {
-                val newCharacters = repository.loadCharacters(currentPage)
-                _characters.value = newCharacters
-                currentPage++
-            } catch (e: Exception) {
-                _hasError.value = true
-            } finally {
-                _isLoading.value = false
+            val result = repository.loadCharacters(pageIndex + 1)
+            _pages.value = _pages.value.toMutableList().apply {
+                set(pageIndex, result)
+            }
+            if (result is PageState.Success) {
+                currentPage = pageIndex + 2
             }
         }
     }

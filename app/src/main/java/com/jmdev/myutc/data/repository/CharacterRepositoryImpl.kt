@@ -9,8 +9,13 @@ class CharacterRepositoryImpl(
     private val api: CharacterApi
 ) : CharacterRepository {
 
-    override suspend fun loadCharacters(page: Int): List<Character> {
-        Log.d("@@@@", "loadCharacters: $page")
-        return api.getCharacters(page).results
+    override suspend fun loadCharacters(page: Int): PageState<List<Character>> {
+        return try {
+            Log.d("@@@@", "loadCharacters: $page")
+            val response = api.getCharacters(page)
+            PageState.Success(response.results)
+        } catch (e: Exception) {
+            PageState.Error(e) // Handle exceptions and return an error state
+        }
     }
 }
